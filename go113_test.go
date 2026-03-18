@@ -176,3 +176,73 @@ func TestUnwrap(t *testing.T) {
 		})
 	}
 }
+
+func TestUnwrapWithOuter(t *testing.T) {
+	err := New("test")
+
+	type args struct {
+		err error
+	}
+	tests := []struct {
+		name      string
+		args      args
+		wantInner error
+		wantOuter error
+	}{
+		{
+			name:      "with stack",
+			args:      args{err: WithStack(err)},
+			wantInner: err,
+			wantOuter: WithStack(err),
+		},
+		{
+			name:      "with message",
+			args:      args{err: WithMessage(err, "test message")},
+			wantInner: err,
+			wantOuter: WithMessage(err, "test message"),
+		},
+		{
+			name:      "with message format",
+			args:      args{err: WithMessagef(err, "%s", "test fmt")},
+			wantInner: err,
+			wantOuter: WithMessagef(err, "%s", "test fmt"),
+		},
+		{
+			name:      "std errors compatibility",
+			args:      args{err: fmt.Errorf("wrap: %w", err)},
+			wantInner: err,
+			wantOuter: fmt.Errorf("wrap: %w", err),
+		},
+		{
+			name:      "no inner error",
+			args:      args{err: err}, // 'err' is just a fundamental error, has no Unwrap()
+			wantInner: nil,
+			wantOuter: err,
+		},
+		{
+			name:      "nil error",
+			args:      args{err: nil},
+			wantInner: nil,
+			wantOuter: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotInner, gotOuter := UnwrapWithOuter(tt.args.err)
+			
+			// Compare inner
+			if !reflect.DeepEqual(gotInner, tt.wantInner) {
+				t.Errorf("UnwrapWithOuter() gotInner = %v, want %v", gotInner, tt.wantInner)
+			}
+			
+			// Compare outer. For fmt.Errorf, DeepEqual might fail if we recreate it, so we compare Error strings if they aren't nil
+			if gotOuter == nil || tt.wantOuter == nil {
+				if gotOuter != tt.wantOuter {
+					t.Errorf("UnwrapWithOuter() gotOuter = %v, want %v", gotOuter, tt.wantOuter)
+				}
+			} else if gotOuter.Error() != tt.wantOuter.Error() {
+				t.Errorf("UnwrapWithOuter() gotOuter = %q, want %q", gotOuter.Error(), tt.wantOuter.Error())
+			}
+		})
+	}
+}

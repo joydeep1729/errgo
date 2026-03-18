@@ -36,3 +36,27 @@ func As(err error, target interface{}) bool { return stderrors.As(err, target) }
 func Unwrap(err error) error {
 	return stderrors.Unwrap(err)
 }
+
+// UnwrapWithOuter returns the inner and outer errors.
+// If err wraps another error, it returns the wrapped error as inner
+// and the original err as outer.
+func UnwrapWithOuter(err error) (inner, outer error) {
+	if err == nil {
+		return nil, nil
+	}
+	
+	// Try standard library unwrap
+	inner = stderrors.Unwrap(err)
+	if inner == nil {
+		// Fallback to older causer interface used by pkg/errors types
+		// if they don't implement Go 1.13 Unwrap()
+		type causer interface {
+			Cause() error
+		}
+		if c, ok := err.(causer); ok {
+			inner = c.Cause()
+		}
+	}
+	
+	return inner, err
+}
