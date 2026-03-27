@@ -203,3 +203,16 @@ func ExampleCause_printf() {
 
 	// Output: failed: hello world
 }
+
+func ExampleUnwrapWithOuter() {
+	cause := errors.New("whoops")
+	err := errors.WithMessage(cause, "oh noes")
+
+	inner, outer := errors.UnwrapWithOuter(err)
+	fmt.Println(inner)
+	fmt.Println(outer)
+
+	// Output:
+	// whoops
+	// oh noes: whoops
+}
