@@ -3,7 +3,7 @@ package errors_test
 import (
 	"fmt"
 
-	"errgo"
+	"github.com/joydeep1729/errgo"
 )
 
 func ExampleNew() {
@@ -214,5 +214,5 @@ func ExampleUnwrapWithOuter() {
 
 	// Output:
 	// whoops
-	// oh noes: whoops
+	// oh noes
 }

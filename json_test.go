@@ -12,7 +12,7 @@ func TestFrameMarshalText(t *testing.T) {
 		want string
 	}{{
 		initpc,
-		`^errgo\.init(\.ializers)? .+errgo/stack_test.go:\d+$`,
+		`^github\.com/joydeep1729/errgo\.init(\.ializers)? .+errgo/stack_test.go:\d+$`,
 	}, {
 		0,
 		`^unknown$`,
@@ -34,7 +34,7 @@ func TestFrameMarshalJSON(t *testing.T) {
 		want string
 	}{{
 		initpc,
-		`^"errgo\.init(\.ializers)? .+errgo/stack_test.go:\d+"$`,
+		`^"github\.com/joydeep1729/errgo\.init(\.ializers)? .+errgo/stack_test.go:\d+"$`,
 	}, {
 		0,
 		`^"unknown"$`,

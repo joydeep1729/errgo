@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	errors "errgo"
+	errors "github.com/joydeep1729/errgo"
 )
 
 func main() {

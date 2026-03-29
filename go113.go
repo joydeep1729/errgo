@@ -45,18 +45,44 @@ func UnwrapWithOuter(err error) (inner, outer error) {
 		return nil, nil
 	}
 	
-	// Try standard library unwrap
-	inner = stderrors.Unwrap(err)
-	if inner == nil {
-		// Fallback to older causer interface used by pkg/errors types
-		// if they don't implement Go 1.13 Unwrap()
-		type causer interface {
-			Cause() error
+	current := err
+	for {
+		// Try standard library unwrap
+		next := stderrors.Unwrap(current)
+		if next == nil {
+			// Fallback to older causer interface used by pkg/errors types
+			// if they don't implement Go 1.13 Unwrap()
+			type causer interface {
+				Cause() error
+			}
+			if c, ok := current.(causer); ok {
+				next = c.Cause()
+			}
 		}
-		if c, ok := err.(causer); ok {
-			inner = c.Cause()
+		if next == nil {
+			break
 		}
+		current = next
 	}
 	
-	return inner, err
+	if current == err {
+		// The error does not wrap anything
+		return nil, err
+	}
+
+	msg := err.Error()
+	innerMsg := current.Error()
+
+	if len(msg) > len(innerMsg) {
+		suffix := ": " + innerMsg
+		if len(msg) >= len(suffix) && msg[len(msg)-len(suffix):] == suffix {
+			msg = msg[:len(msg)-len(suffix)]
+		} else if len(msg) >= len(innerMsg) && msg[len(msg)-len(innerMsg):] == innerMsg {
+			msg = msg[:len(msg)-len(innerMsg)]
+		}
+	} else if msg == innerMsg {
+		msg = ""
+	}
+
+	return current, stderrors.New(msg)
 }
