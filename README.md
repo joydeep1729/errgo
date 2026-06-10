@@ -24,11 +24,24 @@ if err != nil {
 
 Depending on the nature of the error it may be necessary to reverse the operation of `errors.Wrap` to retrieve the original error for inspection. 
 
-With `errgo`, we have introduced `UnwrapWithOuter`, granting the ability to preserve both the outer layer wrapper and the inner error:
+With `errgo`, we have introduced dual-unwrapping features to preserve outer layer wrappers and inner errors:
+
+### 1. Step-by-Step Single-Level Unwrapping (`UnwrapWithOuter`)
+`UnwrapWithOuter` unwraps exactly one level of the error chain. It returns the immediate wrapped error as `inner`, and the outer context/message added at the current level as `outer`.
 ```go
 import errors "github.com/joydeep1729/errgo"
 
+// Unwraps one level (top-level wrapper context)
 inner, outer := errors.UnwrapWithOuter(err)
+```
+
+### 2. Direct Root-Cause Unwrapping (`UnwrapToCauseWithOuter`)
+`UnwrapToCauseWithOuter` unwraps the entire error chain all the way down to the root cause. It returns the deepest underlying error as `cause`, and the combined outer context of all wrapper layers as `outer`.
+```go
+import errors "github.com/joydeep1729/errgo"
+
+// Unwraps the entire chain directly to the root cause
+cause, outer := errors.UnwrapToCauseWithOuter(err)
 ```
 
 Standard unwrapping and Go 1.13+ `errors.Is` and `errors.As` are also completely supported out-of-the-box.

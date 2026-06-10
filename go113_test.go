@@ -179,6 +179,8 @@ func TestUnwrap(t *testing.T) {
 
 func TestUnwrapWithOuter(t *testing.T) {
 	err := New("test")
+	errMiddle := WithMessage(err, "middle")
+	errTop := WithMessage(errMiddle, "top")
 
 	type args struct {
 		err error
@@ -214,6 +216,18 @@ func TestUnwrapWithOuter(t *testing.T) {
 			wantOuter: stderrors.New("wrap"),
 		},
 		{
+			name:      "nested wraps step 1",
+			args:      args{err: errTop},
+			wantInner: errMiddle,
+			wantOuter: stderrors.New("top"),
+		},
+		{
+			name:      "nested wraps step 2",
+			args:      args{err: errMiddle},
+			wantInner: err,
+			wantOuter: stderrors.New("middle"),
+		},
+		{
 			name:      "no inner error",
 			args:      args{err: err}, // 'err' is just a fundamental error, has no Unwrap()
 			wantInner: nil,
@@ -242,6 +256,84 @@ func TestUnwrapWithOuter(t *testing.T) {
 				}
 			} else if gotOuter.Error() != tt.wantOuter.Error() {
 				t.Errorf("UnwrapWithOuter() gotOuter = %q, want %q", gotOuter.Error(), tt.wantOuter.Error())
+			}
+		})
+	}
+}
+
+func TestUnwrapToCauseWithOuter(t *testing.T) {
+	err := New("test")
+	errMiddle := WithMessage(err, "middle")
+	errTop := WithMessage(errMiddle, "top")
+
+	type args struct {
+		err error
+	}
+	tests := []struct {
+		name      string
+		args      args
+		wantInner error
+		wantOuter error
+	}{
+		{
+			name:      "with stack",
+			args:      args{err: WithStack(err)},
+			wantInner: err,
+			wantOuter: stderrors.New(""),
+		},
+		{
+			name:      "with message",
+			args:      args{err: WithMessage(err, "test message")},
+			wantInner: err,
+			wantOuter: stderrors.New("test message"),
+		},
+		{
+			name:      "with message format",
+			args:      args{err: WithMessagef(err, "%s", "test fmt")},
+			wantInner: err,
+			wantOuter: stderrors.New("test fmt"),
+		},
+		{
+			name:      "std errors compatibility",
+			args:      args{err: fmt.Errorf("wrap: %w", err)},
+			wantInner: err,
+			wantOuter: stderrors.New("wrap"),
+		},
+		{
+			name:      "nested wraps to cause",
+			args:      args{err: errTop},
+			wantInner: err,
+			wantOuter: stderrors.New("top: middle"),
+		},
+		{
+			name:      "no inner error",
+			args:      args{err: err},
+			wantInner: nil,
+			wantOuter: err,
+		},
+		{
+			name:      "nil error",
+			args:      args{err: nil},
+			wantInner: nil,
+			wantOuter: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotInner, gotOuter := UnwrapToCauseWithOuter(tt.args.err)
+			
+			// Compare inner
+			if !reflect.DeepEqual(gotInner, tt.wantInner) {
+				t.Errorf("UnwrapToCauseWithOuter() gotInner = %v, want %v", gotInner, tt.wantInner)
+			}
+			
+			// Compare outer
+			if gotOuter == nil || tt.wantOuter == nil {
+				if gotOuter != tt.wantOuter {
+					t.Errorf("UnwrapToCauseWithOuter() gotOuter = %v, want %v", gotOuter, tt.wantOuter)
+				}
+			} else if gotOuter.Error() != tt.wantOuter.Error() {
+				t.Errorf("UnwrapToCauseWithOuter() gotOuter = %q, want %q", gotOuter.Error(), tt.wantOuter.Error())
 			}
 		})
 	}

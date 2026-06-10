@@ -7,19 +7,34 @@ import (
 )
 
 func main() {
-	// Create a base error simulating a database failure
+	// 1. Create a nested error chain:
+	// dbErr (root) -> appErr (middle context) -> apiErr (top context)
 	dbErr := errors.New("database connection failed")
-
-	// Wrap the error with custom application-level context
 	appErr := errors.WithMessage(dbErr, "failed to fetch user profile")
+	apiErr := errors.WithMessage(appErr, "API request failed")
 
-	// Demonstrate our new UnwrapWithOuter feature
-	inner, outer := errors.UnwrapWithOuter(appErr)
+	fmt.Println("=== Original Wrapped Error ===")
+	fmt.Printf("%v\n\n", apiErr)
 
-	fmt.Println("--- Original Wrapped Error ---")
-	fmt.Printf("%v\n\n", appErr)
+	// 2. Demonstrate UnwrapWithOuter (single-level unwrap)
+	fmt.Println("=== Step-by-Step unwrapping using UnwrapWithOuter() ===")
+	current := apiErr
+	step := 1
+	for {
+		inner, outer := errors.UnwrapWithOuter(current)
+		if inner == nil {
+			fmt.Printf("Step %d (Leaf): Outer context = %v | Inner = <nil>\n", step, outer)
+			break
+		}
+		fmt.Printf("Step %d: Outer context = %q | Inner error msg = %q\n", step, outer.Error(), inner.Error())
+		current = inner
+		step++
+	}
+	fmt.Println()
 
-	fmt.Println("--- After UnwrapWithOuter() ---")
-	fmt.Printf("Inner Error (Original Cause): %v\n", inner)
-	fmt.Printf("Outer Error (The Wrapper)   : %v\n", outer)
+	// 3. Demonstrate UnwrapToCauseWithOuter (multi-level unwrap to root cause)
+	fmt.Println("=== Direct unwrapping to root cause using UnwrapToCauseWithOuter() ===")
+	cause, outer := errors.UnwrapToCauseWithOuter(apiErr)
+	fmt.Printf("Root Cause  : %v\n", cause)
+	fmt.Printf("Outer Context: %v\n", outer)
 }
